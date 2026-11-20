@@ -1,0 +1,7 @@
+<x-layout title="見つかりません">
+    <div class="rounded-2xl border border-white/10 bg-slate-900/50 px-6 py-16 text-center">
+        <p class="font-mono text-4xl font-bold text-slate-600">404</p>
+        <p class="mt-3 text-slate-300">この住居は見つかりません（削除されたか、URL が正しくありません）</p>
+        <a href="{{ route('rsdts.index') }}" class="mt-6 inline-block text-sm text-cyan-300 hover:underline">‹ 一覧に戻る</a>
+    </div>
+</x-layout>
