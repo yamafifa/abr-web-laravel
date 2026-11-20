@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "abr-web-laravel",
+    "name": "abr/abr-web-laravel",
     "type": "project",
     "description": "住居表示-住居マスター（mt_rsdtdsp_rsdt）を検索・一覧・編集・削除する Laravel のアプリ（勉強用）",
     "license": "MIT",

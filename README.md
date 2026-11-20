@@ -3,7 +3,7 @@
 ABR（アドレス・ベース・レジストリ）の住居表示-住居マスター（`mt_rsdtdsp_rsdt`、東京都 1,752,573 件）を検索して、一覧表示・編集・削除する Web アプリです。
 勉強用に、同じものを TypeScript・Ruby on Rails・PHP Laravel で作るうちの PHP Laravel 版です。
 
-- PHP 8.4 ＋ Laravel 13.40.0 ＋ Eloquent ＋ Blade ＋ Tailwind CSS 4 ＋ Alpine.js ＋ Pest
+- PHP 8.5 ＋ Laravel 13.40.0 ＋ Eloquent ＋ Blade ＋ Tailwind CSS 4 ＋ Alpine.js ＋ Pest
 - 構成は「Laravel 標準の MVC ＋ ユースケース」（`app/UseCases/`）。Rails 版と同じ形です
 - DB は [abr-batch](https://github.com/yamafifa/abr-batch) の MySQL を共用します（テーブルも abr-batch で作ったもの）
 

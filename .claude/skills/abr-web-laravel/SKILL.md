@@ -7,7 +7,7 @@ description: abr-web-laravel（住居表示-住居マスターを検索・一覧
 
 ## 前提
 
-- PHP 8.4.10 ＋ Laravel 13.40.0 ＋ Eloquent（MySQL）＋ Blade ＋ Tailwind CSS 4（Vite）＋ Alpine.js 3.17.5 ＋ Pest 5.3.5
+- PHP 8.5.13（phpenv の global）＋ Composer 2.11.2 ＋ Laravel 13.40.0 ＋ Eloquent（MySQL）＋ Blade ＋ Tailwind CSS 4（Vite）＋ Alpine.js 3.17.5 ＋ Pest 5.3.5
 - DB は **abr-batch の MySQL を共用**（ポート 3307、テーブル `mt_rsdtdsp_rsdt`、1,752,573 件）。開発とテストは同じ DB
 - 勉強用に、同じものを TS（abr-web-ts）・Rails（abr-web-rails）でも作った。機能・画面・デザイン・ユースケースの名前（`SearchRsdt`・`GetRsdt`・`UpdateRsdt`・`DeleteRsdt`）をそろえる
 - サーバーは 3000 番ポート（ほかの版と同じ）。`127.0.0.1` で待ち受ける
