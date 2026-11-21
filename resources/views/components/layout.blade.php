@@ -18,6 +18,16 @@
                 <span class="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-red-400 to-orange-400 text-sm font-bold text-slate-950 shadow-lg shadow-red-500/20">L</span>
                 <span class="font-semibold tracking-wide text-slate-100 group-hover:text-white">ABR 住居マスター</span>
             </a>
+            {{-- DB 検索と Elasticsearch 検索の切り替え --}}
+            <nav class="ml-6 flex gap-1 text-sm">
+                @foreach ([['DB 検索', 'rsdts.index'], ['Elasticsearch 検索', 'rsdts.es']] as [$label, $name])
+                    <a href="{{ route($name) }}" @class([
+                        'rounded-lg px-3 py-1.5',
+                        'bg-white/10 font-medium text-white' => request()->routeIs($name),
+                        'text-slate-400 hover:bg-white/5 hover:text-white' => ! request()->routeIs($name),
+                    ])>{{ $label }}</a>
+                @endforeach
+            </nav>
             <span class="ml-auto rounded-full border border-white/10 px-2.5 py-0.5 font-mono text-xs text-slate-400">mt_rsdtdsp_rsdt</span>
         </div>
     </header>

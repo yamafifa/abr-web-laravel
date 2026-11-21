@@ -15,6 +15,7 @@ TS 版・Rails 版と同じです。
 - **一覧**：主キー順。1 ページ 15 件（30・50・100 件も選べます）。ページャー付き
 - **編集**：主キー以外の 17 列。「更新」を押すと、変わった項目をモーダルで見せてから保存します
 - **削除**：一覧と編集画面から。モーダルで確認してから削除します
+- **Elasticsearch 検索**（Rails 版と Laravel 版だけ）：`/es`。条件の意味と画面は DB 検索と同じで、abr-batch の `npm run es:index` で作った Elasticsearch のインデックスから探します。下の「Elasticsearch 検索」を参照
 
 ## 動かし方
 
@@ -34,6 +35,23 @@ php artisan serve --host=127.0.0.1 --port=3000   # http://127.0.0.1:3000
 - 編集・削除したデータは、abr-batch で `npm run import:v3`（約 15 秒）を実行すると元に戻せます
 - **`php artisan migrate` などの DB のコマンドは使えません。** DB を abr-batch と共用しているので、[app/Console/DbCommandGuard.php](app/Console/DbCommandGuard.php) と Laravel の `DB::prohibitDestructiveCommands()` で止めています（`migrate:fresh`・`db:wipe` で abr の DB のテーブルが消える、などを防ぐため）
 
+## Elasticsearch 検索
+
+Rails 版と同じものです。DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられ、それぞれの画面に「同じ条件で〜検索」のリンクがあります。
+
+- **速さ**（`php artisan serve` で画面全体を返すまで、3 回測った値）
+
+| 条件 | DB 検索 | Elasticsearch 検索 |
+|---|---|---|
+| 市区町村「町田」＋町字「木曽」 | 1.71〜1.73 秒 | 0.029〜0.033 秒 |
+| 町字「西」 | 0.68〜0.77 秒 | 0.034〜0.10 秒 |
+| 条件なし | 0.23〜0.24 秒 | 0.029〜0.030 秒 |
+
+- **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。この画面から編集・削除すると DB は変わりますが、Elasticsearch は次に `es:index` を実行するまで古いままです。食い違ったときは、DB 検索の画面と見比べてください
+- **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、主キーの続きから取る方法（search_after）にしました
+- **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[app/Support/RsdtFold.php](app/Support/RsdtFold.php)）で同じように文字をそろえています。DB にある値すべて（1,159 種類）で、abr-batch と結果が同じになることを確かめました。直すときは abr-batch・Rails 版・Laravel 版のすべてを直します
+- Elasticsearch には専用のパッケージを使わず、Laravel の HTTP クライアントでつなぎます（[app/Support/EsClient.php](app/Support/EsClient.php)）。接続先は `.env` の `ES_URL`（既定は `http://127.0.0.1:9200`）。接続できないときは、画面にエラーの文を出します
+
 ## 構成
 
 | 場所 | 内容 |
@@ -41,12 +59,17 @@ php artisan serve --host=127.0.0.1 --port=3000   # http://127.0.0.1:3000
 | `app/Models/Rsdt.php` | Eloquent のモデル。複合主キー、17 列の決まり、検索のスコープ、住所の表示 |
 | `app/Models/RsdtSearchCriteria.php` | 検索条件（readonly class） |
 | `app/Models/RsdtListQuery.php` | 一覧の URL ⇔ 検索条件・件数・ページ |
+| `app/Models/RsdtEsListQuery.php` | Elasticsearch 検索の URL ⇔ 検索条件・件数・after・before・last |
 | `app/Http/Requests/UpdateRsdtRequest.php` | 更新の入力チェック（FormRequest） |
-| `app/UseCases/` | ユースケース：`SearchRsdt`（ページ番号の補正もここ）・`GetRsdt`・`UpdateRsdt`・`DeleteRsdt` |
+| `app/UseCases/` | ユースケース：`SearchRsdt`（ページ番号の補正もここ）・`SearchRsdtEs`（Elasticsearch で検索）・`GetRsdt`・`UpdateRsdt`・`DeleteRsdt` |
 | `app/Http/Controllers/RsdtController.php` | パラメーターを読む → ユースケースを呼ぶ → 表示・redirect。戻り先のチェックもここ |
+| `app/Http/Controllers/EsRsdtController.php` | Elasticsearch 検索の一覧。編集・削除は `RsdtController` の画面を使う |
 | `app/Support/Pager.php` | ページャーに出すページ番号 |
-| `resources/views/rsdts/` | 一覧・編集・検索フォーム・404 |
-| `resources/views/components/` | Blade のコンポーネント：レイアウト・確認モーダル・削除ボタン・ページャー・お知らせ |
+| `app/Support/RsdtFold.php` | Elasticsearch で探す前に、文字をそろえる（MySQL と同じ結果にするため） |
+| `app/Support/EsClient.php` | Elasticsearch の REST API を呼ぶ |
+| `resources/views/rsdts/` | 一覧・一覧の表・編集・検索フォーム・404 |
+| `resources/views/es/` | Elasticsearch 検索の一覧 |
+| `resources/views/components/` | Blade のコンポーネント：レイアウト・確認モーダル・削除ボタン・ページャー・Elasticsearch 用のページ送り・お知らせ |
 | `resources/js/app.js` | Alpine.js：確認モーダル（`confirm`） |
 | `app/Console/DbCommandGuard.php` | DB を作り直すコマンドを止める |
 
@@ -59,13 +82,14 @@ Rails 版との違い：
 ## テスト
 
 ```bash
-./vendor/bin/pest        # 65 件、約 25 秒
+./vendor/bin/pest        # 84 件、約 26 秒
 ./vendor/bin/pint --test # 書き方のチェック（直すときは ./vendor/bin/pint）
 ```
 
 - `tests/Unit` は Laravel を起動しないテスト、`tests/Feature` は本物の DB を使うテストです
 - Feature のテストは 1 件ごとにトランザクションで取り消す（`DatabaseTransactions`）ので、DB の中身は変わりません
 - テストも開発も同じ DB を使います（[phpunit.xml](phpunit.xml)）
+- Elasticsearch 検索のテストは、本物の Elasticsearch を使います。先に abr-batch で `npm run es:index` を実行しておきます
 
 ## 作ってみて分かったこと
 
