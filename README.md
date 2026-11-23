@@ -10,14 +10,16 @@ ABR（アドレス・ベース・レジストリ）の住居表示-住居マス�
 
 ## 検索の速さ：DB 検索と Elasticsearch 検索
 
-`php artisan serve` で画面全体を返すまでの時間（2026-11-23 に、3 回測った値）：
+本番モードで画面全体を返すまでの時間（2026-11-23 に、3 回測った値）：
 
 | 条件 | DB 検索（`/`） | Elasticsearch 検索（`/es`） |
 |---|---|---|
-| 市区町村「町田」＋町字「木曽」 | 2.03〜2.07 秒 | 0.032〜0.036 秒 |
-| 町字「西」 | 0.83〜0.84 秒 | 0.036〜0.041 秒 |
-| 条件なし | 0.28 秒 | 0.031 秒 |
+| 市区町村「町田」＋町字「木曽」 | 2.04〜2.10 秒 | 0.026〜0.027 秒 |
+| 町字「西」 | 0.82〜0.83 秒 | 0.029〜0.032 秒 |
+| 条件なし | 0.27 秒 | 0.023〜0.024 秒 |
 
+- 本番モードは、`APP_ENV=production APP_DEBUG=false php artisan optimize`（設定・ルート・画面を前もってまとめる）のあと、OPcache（PHP のコードを変換した結果をメモリに取っておく仕組み）を有効にした PHP の簡易サーバーで動かしました（`public` で `php -d opcache.enable_cli=1 -S 127.0.0.1:3002 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`）。測り終えたら `php artisan optimize:clear` で開発モードに戻します
+- 開発モード（`php artisan serve`）では、Elasticsearch 検索が 0.031〜0.041 秒でした
 - DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスでは速くならないので、毎回 175 万行を全部読みます
 - Elasticsearch 検索は、abr-batch の `npm run es:index` で作った検索用のインデックスから探します。条件の意味と画面は DB 検索と同じです
 - 詳しくは下の「[Elasticsearch 検索](#elasticsearch-検索)」を参照
