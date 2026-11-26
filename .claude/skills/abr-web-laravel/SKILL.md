@@ -9,7 +9,7 @@ description: abr-web-laravel（住居表示-住居マスターを検索・一覧
 
 - PHP 8.5.13（phpenv の global）＋ Composer 2.11.2 ＋ Laravel 13.40.0 ＋ Eloquent（MySQL）＋ Blade ＋ Tailwind CSS 4（Vite）＋ Alpine.js 3.17.5 ＋ Pest 5.3.5
 - DB は **abr-batch の MySQL を共用**（ポート 3307、テーブル `mt_rsdtdsp_rsdt`、1,752,573 件）。開発とテストは同じ DB
-- 勉強用に、同じものを TS（abr-web-ts）・Rails（abr-web-rails）でも作った。機能・画面・デザイン・ユースケースの名前（`SearchRsdt`・`GetRsdt`・`UpdateRsdt`・`DeleteRsdt`）をそろえる
+- 勉強用に、同じものを TypeScript（abr-web-ts）・Rails（abr-web-rails）・Symfony（abr-web-symfony）・Spring Boot（abr-web-spring）でも作った。機能・画面・デザイン・ユースケースの名前（`SearchRsdt`・`GetRsdt`・`UpdateRsdt`・`DeleteRsdt`）をそろえる
 - サーバーは 3000 番ポート（ほかの版と同じ）。`127.0.0.1` で待ち受ける
 - 時刻は日本時間（`config/app.php` の `timezone` が `Asia/Tokyo`）。php.ini の `date.timezone` は UTC のままで、Laravel が起動のときに上書きする
 
@@ -37,6 +37,7 @@ php artisan tinker --execute 'foreach ([Illuminate\Database\Console\Migrations\F
 |---|---|
 | `app/Models/Rsdt.php` | 複合主キー（`KEY_COLUMNS`・`keyFromParam`・`routeId`・`setKeysForSaveQuery`）、17 列の決まり（`ATTRIBUTE_RULES`）、検索（`#[Scope] search`）、住所の表示（`address()`）、フォームに出す値（`formValue()`） |
 | `app/Models/RsdtSearchCriteria.php`・`RsdtListQuery.php` | 検索条件と、一覧の URL ⇔ 状態の変換（readonly class） |
+| `app/Models/RsdtEsListQuery.php`・`app/Support/RsdtFold.php`・`app/Support/EsClient.php` | Elasticsearch 検索の URL ⇔ 状態の変換、文字をそろえる処理（abr-batch の `fold.ts` と同じ）、REST API の呼び出し（Laravel の HTTP クライアント） |
 | `app/Http/Requests/UpdateRsdtRequest.php` | 更新の入力チェック（規則は `Rsdt::ATTRIBUTE_RULES` から作る）とエラーの文 |
 | `app/UseCases/` | ユースケース（`call` を持つクラス）。Eloquent のモデルを直接使う（リポジトリのインターフェースは作らない） |
 | `app/Http/Controllers/RsdtController.php` | パラメーターを読む → ユースケースを呼ぶ → 表示・redirect だけ。ユースケースはメソッドの引数で受け取る |
@@ -50,16 +51,17 @@ php artisan tinker --execute 'foreach ([Illuminate\Database\Console\Migrations\F
 
 1. `app/Models/RsdtSearchCriteria.php` の項目
 2. `app/Models/Rsdt.php` の `search`（部分一致は `self::escapeLike` でエスケープ）
-3. `app/Models/RsdtListQuery.php` の `PARAM_NAMES`（URL の名前）と `MAX_LENGTH`
-4. `resources/views/rsdts/_search-form.blade.php` の `$fields`
-5. テスト（`tests/Unit/RsdtListQueryTest.php`・`tests/Feature/SearchRsdtTest.php`・`RsdtControllerTest.php`）と README
+3. `app/UseCases/SearchRsdtEs.php` の `WILDCARD_FIELDS`（部分一致）か `EXACT_FIELDS`（完全一致）
+4. `app/Models/RsdtListQuery.php` の `PARAM_NAMES`（URL の名前）と `MAX_LENGTH`
+5. `resources/views/rsdts/_search-form.blade.php` の `$fields`
+6. テスト（`tests/Unit/RsdtListQueryTest.php`・`tests/Feature/SearchRsdtTest.php`・`RsdtControllerTest.php`）と README
 
 部分一致か完全一致かは、値を見てから決める（`blk_num`・`rsdt_num` は全件が半角数字なので完全一致）。
 
 ## テストと確認
 
 ```bash
-./vendor/bin/pest          # 65 件、約 25 秒。Feature は本物の DB を使い、1 件ごとにトランザクションで取り消す
+./vendor/bin/pest          # 84 件、約 26 秒。Feature は本物の DB と Elasticsearch を使い、1 件ごとにトランザクションで取り消す
 ./vendor/bin/pint --test   # 指摘 0 件を保つ。直すときは ./vendor/bin/pint
 ```
 
@@ -143,5 +145,5 @@ P=$(ss -ltnp | grep ':3000 ' | grep -o 'pid=[0-9]*' | cut -d= -f2); [ -n "$P" ] 
 - README は入口（できること・動かし方・構成・テスト・作ってみて分かったこと）。起動と停止は `docs/start-stop.md`
 - 仕様を変えたら、README の「できること」「作ってみて分かったこと」も直す。ほかの版とそろえる機能なら、違いも書く
 - コミットと push は、ユーザーの了解を取ってから。メッセージは日本語で、最後に `Co-Authored-By` の行を付ける
-- GitHub は非公開リポジトリにする（TS 版・Rails 版と同じ）。abr-batch 側からは触れない
+- GitHub は**公開**リポジトリ（TS 版・Rails 版も公開）。abr-batch 側からは触れない
 - `vendor/`・`node_modules/`・`public/build/`・`.env`・`storage` の中のログなどは Git に入れない（`.gitignore` 済み）。コミットの前に、個人情報（本名・メールアドレスなど）が入っていないか確かめる

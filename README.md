@@ -1,7 +1,7 @@
 # abr-web-laravel
 
 ABR（アドレス・ベース・レジストリ）の住居表示-住居マスター（`mt_rsdtdsp_rsdt`、東京都 1,752,573 件）を検索して、一覧表示・編集・削除する Web アプリの PHP Laravel 版です。
-[abr-batch](https://github.com/yamafifa/abr-batch) で確かめた「大量のデータを部分一致で探すなら、元の DB ではなく、検索用のデータを作る」の効果を、DB 検索と Elasticsearch 検索の画面で比べられるようにしています。
+[abr-batch](https://github.com/yamafifa/abr-batch) で確かめた「大量のデータを部分一致で探すなら、元の DB ではなく、検索用のデータを作る」という考え方の効果を、DB 検索と Elasticsearch 検索の画面で比べられるようにしています。
 
 - PHP 8.5 ＋ Laravel 13.40.0 ＋ Eloquent ＋ Blade ＋ Tailwind CSS 4 ＋ Alpine.js ＋ Pest
 - 構成は「Laravel 標準の MVC ＋ ユースケース」（`app/UseCases/`）
@@ -20,7 +20,7 @@ ABR（アドレス・ベース・レジストリ）の住居表示-住居マス�
 
 - 本番モードは、`APP_ENV=production APP_DEBUG=false php artisan optimize`（設定・ルート・画面を前もってまとめる）のあと、OPcache（PHP のコードを変換した結果をメモリに取っておく仕組み）を有効にした PHP の簡易サーバーで動かしました（`public` で `php -d opcache.enable_cli=1 -S 127.0.0.1:3002 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`）。測り終えたら `php artisan optimize:clear` で開発モードに戻します
 - 開発モード（`php artisan serve`）では、Elasticsearch 検索が 0.031〜0.041 秒でした
-- DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスでは速くならないので、毎回 175 万行を全部読みます
+- DB 検索は `city LIKE '%町田%'` のような部分一致です。前に `%` が付く LIKE は MySQL のインデックスが効かないので、毎回約 175 万行をすべて読みます
 - Elasticsearch 検索は、abr-batch の `npm run es:index` で作った検索用のインデックスから探します。条件の意味と画面は DB 検索と同じです
 - 詳しくは下の「[Elasticsearch 検索](#elasticsearch-検索)」を参照
 
@@ -50,12 +50,12 @@ php artisan serve --host=127.0.0.1 --port=3000   # http://127.0.0.1:3000
 
 ## Elasticsearch 検索
 
-DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられ、それぞれの画面に「同じ条件で〜検索」のリンクがあります。
+DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/es`）を別に作りました。上のメニューで切り替えられます。それぞれの画面には、もう一方で同じ条件を検索するリンク（「同じ条件で DB 検索」「同じ条件で Elasticsearch 検索」）があります。
 
-- **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。この画面から編集・削除すると DB は変わりますが、Elasticsearch は次に `es:index` を実行するまで古いままです。食い違ったときは、DB 検索の画面と見比べてください
-- **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、主キーの続きから取る方法（search_after）にしました
+- **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。アプリで編集・削除すると DB は変わりますが、Elasticsearch の中身は次に `es:index` を実行するまで古いままです。結果が食い違ったときは、DB 検索の画面と見比べてください
+- **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、前のページの最後の行の主キーを渡して、その続きから取る方法（search_after）にしました
 - **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[app/Support/RsdtFold.php](app/Support/RsdtFold.php)）で同じように文字をそろえています。DB にある値すべて（1,159 種類）で、abr-batch と結果が同じになることを確かめました。直すときは abr-batch と、ほかの版の同じ処理もすべて直します
-- Elasticsearch には専用のパッケージを使わず、Laravel の HTTP クライアントでつなぎます（[app/Support/EsClient.php](app/Support/EsClient.php)）。接続先は `.env` の `ES_URL`（既定は `http://127.0.0.1:9200`）。接続できないときは、画面にエラーの文を出します
+- Elasticsearch には専用のパッケージを使わず、Laravel の HTTP クライアントでつなぎます（[app/Support/EsClient.php](app/Support/EsClient.php)）。接続先は `.env` の `ES_URL` です（書かなければ `http://127.0.0.1:9200`）。接続できないときは、画面にエラーメッセージを出します
 
 ## 構成
 

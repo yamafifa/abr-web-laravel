@@ -4,6 +4,8 @@
 
 ## 起動
 
+先に Docker を起動しておきます。
+
 ### 1. DB を起動する（abr-batch のフォルダで）
 
 ```bash
@@ -11,9 +13,9 @@ cd ~/work/abr-batch
 npm run db:up
 ```
 
-すでに動いていれば不要です。Elasticsearch と Kibana も一緒に起動します。
+すでに DB が動いていれば、この手順は不要です。Elasticsearch と Kibana も一緒に起動します。
 
-Elasticsearch 検索（`/es`）を使うときは、インデックスを作っておきます（約 1 分。DB を変えたあとに、もう一度実行すると反映されます）。
+Elasticsearch 検索（`/es`）を使うときは、インデックスを作っておきます（約 1 分）。DB の中身を変えたあとは、もう一度実行すると Elasticsearch に反映されます。
 
 ```bash
 npm run es:index
@@ -62,5 +64,5 @@ DB を止めてもデータは消えません。
 
 ## 注意
 
-- TS 版・Rails 版も 3000 番ポートを使います。ほかの版が動いていると「Failed to listen on 127.0.0.1:3000 (reason: Address already in use)」で起動できないので、先に止めてください（`--port` を付けないときは、空いている別のポートを探す作りになっています。こちらは試していません）
+- ほかの版（TypeScript・Rails・Symfony・Spring Boot）も 3000 番ポートを使います。ほかの版が動いていると「Failed to listen on 127.0.0.1:3000 (reason: Address already in use)」で起動できないので、先に止めてください（`--port` を付けないときは、空いている別のポートを探す作りになっています。こちらは試していません）
 - DB が止まっていると、画面を開いたときに接続エラーになります
