@@ -55,6 +55,7 @@ DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/e
 - **中身は `npm run es:index` を実行した時点の DB のコピー**です。画面に作成日時を出しています。アプリで編集・削除すると DB は変わりますが、Elasticsearch の中身は次に `es:index` を実行するまで古いままです。結果が食い違ったときは、DB 検索の画面と見比べてください
 - **ページ送りは「最初へ・前へ・次へ・最後へ」**で、ページ番号はありません。Elasticsearch は、先頭から 10,000 件より先へページ番号で進めないため、前のページの最後の行の主キーを渡して、その続きから取る方法（search_after）にしました
 - **文字の扱いは MySQL に合わせています**：MySQL（utf8mb4_unicode_ci）は全角と半角、ひらがなとカタカナ、濁点の有無などを同じ文字として扱います。Elasticsearch でも同じ結果になるよう、入れる側（abr-batch の `src/lib/fold.ts`）と探す側（[app/Support/RsdtFold.php](app/Support/RsdtFold.php)）で同じように文字をそろえています。DB にある値すべて（1,159 種類）で、abr-batch と結果が同じになることを確かめました。直すときは abr-batch と、ほかの版の同じ処理もすべて直します
+- **検索条件の半角カナは、受け取るときに全角カナにします**（「ﾊﾟ」→「パ」）。DB 検索と Elasticsearch 検索の両方にかかります。MySQL は半角の「ﾊﾟ」を「ﾊ」と「ﾟ」の 2 文字として探すので、そのままでは Elasticsearch 検索と件数が合わないためです。変えるのは半角カナだけで、互換漢字や丸数字は変えません（[app/Models/RsdtListQuery.php](app/Models/RsdtListQuery.php)）
 - Elasticsearch には専用のパッケージを使わず、Laravel の HTTP クライアントでつなぎます（[app/Support/EsClient.php](app/Support/EsClient.php)）。接続先は `.env` の `ES_URL` です（書かなければ `http://127.0.0.1:9200`）。接続できないときは、画面にエラーメッセージを出します
 
 ## 構成
@@ -87,7 +88,7 @@ DB 検索（`/`）はそのまま残して、Elasticsearch で探す一覧（`/e
 ## テスト
 
 ```bash
-./vendor/bin/pest        # 84 件、約 26 秒
+./vendor/bin/pest        # 87 件、約 26 秒
 ./vendor/bin/pint --test # 書き方のチェック（直すときは ./vendor/bin/pint）
 ```
 

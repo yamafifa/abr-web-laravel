@@ -35,6 +35,20 @@ it('長すぎる条件は、上限の文字数で切る（文字数はマルチ�
     expect(mb_strlen($q->criteria->city))->toBe(80)->and(strlen($q->criteria->blkNum))->toBe(20);
 });
 
+it('半角カナは全角カナにする（濁点・半濁点は 1 文字にまとめる）', function () {
+    $q = RsdtListQuery::fromParams(['city' => 'ｶﾞｰﾃﾞﾝ', 'town' => 'ﾊﾟｰｸ', 'chome' => 'ｳﾞ']);
+
+    expect([$q->criteria->city, $q->criteria->town, $q->criteria->chome])->toBe(['ガーデン', 'パーク', 'ヴ']);
+});
+
+it('半角カナのほかは変えない（全角英数字・丸数字・互換漢字）', function () {
+    expect(RsdtListQuery::fromParams(['town' => "３Ａ①\u{FA10}ﾊﾟ"])->criteria->town)->toBe("３Ａ①\u{FA10}パ");
+});
+
+it('半角カナを全角にしてから長さで切る', function () {
+    expect(RsdtListQuery::fromParams(['chome' => str_repeat('ﾊﾟ', 20)])->criteria->chome)->toBe(str_repeat('パ', 20));
+});
+
 it('URL のクエリに戻すとき、空の条件と既定値は省く', function () {
     expect(RsdtListQuery::fromParams([])->toParams())->toBe([])
         ->and(RsdtListQuery::fromParams(['town' => '上北沢', 'blk' => '1', 'per' => '30', 'page' => '2'])->toParams())
